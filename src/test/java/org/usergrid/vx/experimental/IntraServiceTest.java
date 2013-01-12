@@ -394,15 +394,15 @@ public class IntraServiceTest {
   @Test
   @RequiresColumnFamily(ksName = "myks", cfName = "mycf")
   public void loadTestClient() throws Exception{
-    final int ops=1;
+    final int ops=10000;
     long start = System.currentTimeMillis();
     
     Thread t = new Thread (){
        IntraClient ic = new IntraClient();
        
       public void run(){
-        //ic.setPayload("json");
-        ic.setPayload("jsonsmile");
+        ic.setPayload("json");
+        //ic.setPayload("jsonsmile");
         for (int i =0;i<ops;++i){
           IntraReq req = new IntraReq();
           req.add( IntraOp.setKeyspaceOp("myks") ); //0
@@ -423,5 +423,27 @@ public class IntraServiceTest {
     long end = System.currentTimeMillis();
     System.out.println(end-start);
   }
+ 
+  @Test
+  public void testSess() throws Exception {
+
+    long start = System.currentTimeMillis();
+    IntraClient ic = new IntraClient();
+    ic.setPayload("json");
+    IntraReq req = new IntraReq();
+    req.add(IntraOp.createSession());
+    IntraRes res = null;
+    try {
+      res = ic.sendBlocking(req);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    Thread.sleep(3000);
+    System.out.println("sess "+res.getOpsRes().get(0));
+    Assert.assertEquals(1, res.getOpsRes().size());
+    long end = System.currentTimeMillis();
+    System.out.println(end-start);
+  }
+  
   
 }

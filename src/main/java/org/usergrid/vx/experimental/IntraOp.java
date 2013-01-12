@@ -1,5 +1,8 @@
 package org.usergrid.vx.experimental;
 
+import org.vertx.java.core.Handler;
+import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonObject;
 import com.google.common.base.Preconditions;
 import groovy.lang.GroovyClassLoader;
 import org.apache.cassandra.config.CFMetaData;
@@ -20,6 +23,7 @@ import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.thrift.*;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.json.JsonObject;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -148,6 +152,11 @@ public class IntraOp implements Serializable{
 		i.set("name", ksname);
 		i.set("replication", replication);
 		return i;
+	}
+	
+	public static IntraOp createSession(){
+	  IntraOp i = new IntraOp(Type.CREATESESSION);
+	  return i;
 	}
 	
 	public static IntraOp consistencyOp(String name){
@@ -455,6 +464,7 @@ public class IntraOp implements Serializable{
     SETKEYSPACE {
       @Override
       public void execute(IntraReq req, IntraRes res, IntraState state, int i, Vertx vertx) {
+        
         IntraOp op = req.getE().get(i);
         state.currentKeyspace = (String) op.getOp().get("keyspace");
         res.getOpsRes().put(i, "OK");
@@ -612,6 +622,28 @@ public class IntraOp implements Serializable{
           return;
         }
         IntraState.multiProcessors.put(name, p);
+      }
+    },
+    CREATESESSION {
+      @Override
+      public void execute(IntraReq req, final IntraRes res, IntraState state, final int i, Vertx vertx) {
+        System.out.println("in ession");
+        IntraOp op = req.getE().get(i);
+        JsonObject toSend = new JsonObject();
+        toSend.putString("type", "create");
+        System.out.println(i);
+        vertx.eventBus().send("intravert.session", toSend, new Handler<Message<JsonObject>>(){
+          @Override
+          public void handle(Message<JsonObject> arg0) {
+            System.out.println("id "+i);
+            System.out.println("session back "+arg0.body.getString("id"));
+            res.getOpsRes().put(i, arg0.body.getString("id"));
+          }
+        });
+        try {
+        Thread.sleep(2000);
+        } catch (Exception ex){}
+        System.out.println("sent");
       }
     },
     MULTIPROCESS {

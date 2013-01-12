@@ -6,11 +6,16 @@ import org.slf4j.LoggerFactory;
 import org.usergrid.vx.experimental.IntraHandlerJsonSmile;
 import org.usergrid.vx.experimental.IntraHandlerXml;
 import org.usergrid.vx.experimental.IntraHandlerJson;
+import org.usergrid.vx.experimental.SessionManager;
 import org.usergrid.vx.handler.http.HelloHandler;
 import org.usergrid.vx.handler.http.NoMatchHandler;
 import org.usergrid.vx.handler.http.ThriftHandler;
+import org.vertx.java.core.Handler;
 import org.vertx.java.core.Vertx;
+import org.vertx.java.core.eventbus.EventBus;
+import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.http.RouteMatcher;
+import org.vertx.java.core.json.JsonObject;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -27,7 +32,9 @@ public class IntravertCassandraServer implements CassandraDaemon.Server {
     logger.debug("Starting IntravertCassandraServer...");
     // TODO may be more appropriate in setup() ?
 		vertx = Vertx.newVertx();
-		
+		EventBus eb = vertx.eventBus();
+		eb.registerHandler("intravert.session", new SessionManager());
+
 		rm = new RouteMatcher();
 		rm.put("/:appid/hello", new HelloHandler());
 		rm.get("/:appid/hello", new HelloHandler());
