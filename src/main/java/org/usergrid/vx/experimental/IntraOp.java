@@ -343,7 +343,7 @@ public class IntraOp implements Serializable{
         String name  = (String) op.getOp().get("name");
         Boolean on  = (Boolean) op.getOp().get("on");
         if (on){
-          Filter f = state.filters.get(name);
+          Filter f = state.getFilter(name);
           if (f == null){
             res.setExceptionAndId("filter "+name +" not found", i);
             return;
@@ -436,10 +436,10 @@ public class IntraOp implements Serializable{
           Vertx vertx) {
         IntraOp op = req.getE().get(i);
         if (((String)op.getOp().get("mode")).equalsIgnoreCase("save")){
-          res.getOpsRes().put(i, state.saveState(state));
+          res.getOpsRes().put(i, state.saveState());
         } else if (((String)op.getOp().get("mode")).equalsIgnoreCase("get")){
           Integer id = (Integer) op.getOp().get("id");
-          IntraState other = state.getState(id.intValue());
+          IntraState other = state.getState(id.longValue());
           state.currentColumnFamily=other.currentColumnFamily;
           state.currentKeyspace=other.currentKeyspace;
           state.consistency = other.consistency;
@@ -447,7 +447,7 @@ public class IntraOp implements Serializable{
           state.nanotime = other.nanotime;
           state.meta = other.meta;
           state.currentFilter = other.currentFilter;
-          
+
         }
       }
     },

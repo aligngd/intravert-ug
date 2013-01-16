@@ -11,9 +11,15 @@ import java.util.*;
 
 public class IntraService {
 
+  private final IntraStateManager intraStateManager;
+
+  public IntraService() {
+    this.intraStateManager = IntraStateManager.manager(10000, 120);
+  }
+
 
 	public IntraRes handleIntraReq(IntraReq req, IntraRes res, Vertx vertx){
-		IntraState state = new IntraState();
+		IntraState state = intraStateManager.create();
 		if ( verifyReq(req,res) == false ){
 			return res;
 		} else {

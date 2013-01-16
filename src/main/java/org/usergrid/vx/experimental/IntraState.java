@@ -12,8 +12,8 @@ import org.apache.cassandra.db.ConsistencyLevel;
 /* class that holds properties for the request lifecycle */
 public class IntraState {
   //TODO this should be an epiring cache
-  private static Map<Integer,IntraState> savedState = new HashMap<Integer,IntraState>();
-  private static AtomicInteger id=new AtomicInteger(0);
+
+  private final IntraStateManager intraStateManager;
 	String currentKeyspace="";
 	String currentColumnFamily="";
 	boolean autoTimestamp= true;
@@ -26,14 +26,40 @@ public class IntraState {
 	static Map<String,Filter> filters = new HashMap<String,Filter>(); 
 	static Map<String,MultiProcessor> multiProcessors = new HashMap<String,MultiProcessor>();
 	Filter currentFilter;
-	
-	public int saveState(IntraState s){
-	  int i = id.getAndIncrement();
-	  savedState.put(i,s);
-	  return i;
-	}
-	
-	public IntraState getState(int i){
-	  return this.savedState.get(i);
-	}
+
+  IntraState(IntraStateManager intraStateManager) {
+    this.intraStateManager = intraStateManager;
+  }
+
+  long saveState() {
+    return intraStateManager.saveState(this);
+  }
+
+  IntraState getState(long id){
+    return intraStateManager.getState(id);
+  }
+
+  Filter getFilter(String name) {
+    return intraStateManager.getFilter(name);
+  }
+
+  // TODO
+  // getProcessor
+  // getMultiProcessor
+
+
+  void addProcessor(String name, Processor processor) {
+
+  }
+
+  void addFilter(String name, Filter filter) {
+
+  }
+
+  void addMultiProcessor(String name, MultiProcessor multiProcessor) {
+
+  }
+
+
+
 }
