@@ -34,6 +34,8 @@ public class IntraStateManager {
                       }
                     });
 
+    // TODO dynamicOp functionality may belong in it's own class
+    // TODO add test cases building the op dynamically, run through 100k times for leaks
     dynamicOps =  CacheBuilder.newBuilder()
             .maximumSize(this.maxSize)
             .build(
@@ -74,6 +76,11 @@ public class IntraStateManager {
       throw new RuntimeException("Could not return cached IntraState", ex);
     }
  	}
+
+  //--------- dynamic op noodling ----
+  // TODO
+  // - make sure all invocations use these
+  // - delegate Groovy runtime construction to here from IntraOp
 
   DynamicOpHolder holderFor(Filter filter, String name, String spec) {
     return new DynamicOpHolder(filter, name, spec);
