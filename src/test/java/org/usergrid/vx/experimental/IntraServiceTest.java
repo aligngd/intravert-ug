@@ -572,7 +572,7 @@ public class IntraServiceTest {
 				"} \n" 
 	  		))
 	  	   .add( Operations.assumeOp("myks", "mycf", "value", "UTF-8"))//1
-		   .add(Operations.assumeOp("myks", "mycf", "column", "UTF-8"))//2
+		   .add( Operations.assumeOp("myks", "mycf", "column", "UTF-8"))//2
 		   .add( Operations.setKeyspaceOp("myks"))
 		   .add( Operations.setColumnFamilyOp("mycf"))
 		   .add( Operations.setOp("scannerrow", "ed", "NY")) //3

@@ -590,6 +590,7 @@ public class IntraOp implements Serializable{
 				int size=100;
 				ScanContext c = state.openedScanners.get(scanId);
 				boolean goOn = true;
+				System.out.println("Second slice");
 				do {
 					IntraRes iRes = new IntraRes();
 					IntraReq iReq = new IntraReq();
@@ -597,24 +598,33 @@ public class IntraOp implements Serializable{
 					iReq.add( Operations.setColumnFamilyOp(c.cf) );
 					IntraOp slice =  Operations.sliceOp(c.row, c.startCol, c.endCol , 100);
 					iReq.add( slice );
-					is.handleIntraReq(iReq, iRes, vertx);
+					try { 
+						is.handleIntraReq(iReq, iRes, vertx);
+					} catch (Exception ex){
+						System.err.println("problem in slice");
+					}
 					List<Map> results = (List<Map>) iRes.getOpsRes().get(2);
+					System.out.println("slice returned "+results.size());
 					if (skipFirst){
 						if (results.size()>0){
+							System.out.println("skipping first row");
 							results.remove(0);
+							skipFirst=false;
 						}
 					}
 					for (Map m:results){
-						ByteBuffer colname = ((ByteBuffer) m.get("name")).duplicate();
-						ByteBuffer end = ByteBufferUtil.bytes( (String) c.endCol ).duplicate();
+						ByteBuffer colname = ByteBufferUtil.clone((ByteBuffer) m.get("name"));
+						ByteBuffer end = ByteBufferUtil.clone(ByteBufferUtil.bytes( (String) c.endCol ));
 						if (ByteBufferUtil.compareUnsigned(colname, end)>-1){
+							System.out.println("Breaking out of loop name>end");
 							goOn=false;
 							break;
 						}
-
+						
 						c.filter.filter(m, c);
-						c.startCol = m.get("name");
+						c.startCol = ByteBufferUtil.clone( (ByteBuffer) m.get("name"));
 						if (c.results.size()>=size){
+							System.out.println("Breaking out of loop results>size");
 							goOn=false;
 							break;
 						}
@@ -625,11 +635,13 @@ public class IntraOp implements Serializable{
 				} while (goOn);
 				List<Map> resultsCopy = new ArrayList<Map>();
 				resultsCopy.addAll(c.results);
+				System.out.println(resultsCopy);
+				System.out.println("results size "+resultsCopy.size());
 				res.getOpsRes().put(i, resultsCopy);
 				c.results.clear();
 			}
 			//create 
-		}
+		} 
 		
 	};
 
@@ -643,5 +655,5 @@ public String toString() {
 	return "IntraOp [opid=" + opid + ", type=" + type + ", op=" + op + "]";
 }
 	
-  
+ 
 }
