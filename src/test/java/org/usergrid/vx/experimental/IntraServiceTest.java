@@ -27,6 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.usergrid.vx.experimental.scan.ScanResult;
 import org.usergrid.vx.server.IntravertCassandraServer;
 import org.usergrid.vx.server.IntravertDeamon;
 import org.vertx.java.core.Vertx;
@@ -555,4 +556,42 @@ public class IntraServiceTest {
 	     Assert.assertEquals( "wow",  x.get(0).get("value") );
 	     Assert.assertEquals( 1,  x.get(0).get("name") );
 	   }
+	 
+	 
+	 
+	 @Test
+	  @RequiresColumnFamily(ksName = "myks", cfName = "mycf")
+	  public void scannerTest() throws Exception {
+		 Thread.sleep(2000);
+		  IntraReq req = new IntraReq();
+		  req.add( Operations.createScanFilter("peoplefromny", "groovy",
+		  		"import org.usergrid.vx.experimental.* \n"+
+		  		"import org.usergrid.vx.experimental.scan.* \n"+
+				"public class MyScanner extends PeopleFromNY { \n"+
+		  		"   public MyScanner() { super(); } \n"+
+				"} \n" 
+	  		))
+	  	   .add( Operations.assumeOp("myks", "mycf", "value", "UTF-8"))//1
+		   .add(Operations.assumeOp("myks", "mycf", "column", "UTF-8"))//2
+		   .add( Operations.setKeyspaceOp("myks"))
+		   .add( Operations.setColumnFamilyOp("mycf"))
+		   .add( Operations.setOp("scannerrow", "ed", "NY")) //3
+		   .add( Operations.setOp("scannerrow", "bob", "NY"))//4
+		   .add( Operations.setOp("scannerrow", "pete", "FL"))//5
+		   .add( Operations.setOp("scannerrow", "john", "TX"))//6
+		   .add( Operations.setOp("scannerrow", "sara", "??"))//7
+		   .add( Operations.setOp("scannerrow", "stacey", "NY"))//8
+		   .add( Operations.setOp("scannerrow", "paul", "YO"));//9
+		  
+		  IntraClient ic = new IntraClient();
+		  ic.setPayload("json");
+		  IntraRes res = ic.sendBlocking(req);
+		  System.out.println( res.getException());
+		  IntraOp scan = Operations.scan("myks", "mycf", "scannerrow", "ed", "zzname", "peoplefromny");
+		  ScanResult sr = ic.getScanner( scan );
+		  System.out.println("scannerid" +sr.getScannerId());
+		  System.out.println( sr.getState());
+		  
+		  
+	  }
 }

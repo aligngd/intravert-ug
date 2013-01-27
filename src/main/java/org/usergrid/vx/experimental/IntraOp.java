@@ -19,6 +19,9 @@ import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.thrift.*;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.ByteBufferUtil;
+import org.usergrid.vx.experimental.scan.ScanContext;
+import org.usergrid.vx.experimental.scan.ScanFilter;
 import org.vertx.java.core.Vertx;
 
 import java.io.IOException;
@@ -531,8 +534,80 @@ public class IntraOp implements Serializable{
 			String name = (String) op.getOp().get("name");
 			ServiceProcessor sp = IntraState.serviceProcessors.get(name);
 			sp.process(req, res, state, i, vertx, is);
-		}   	
-    };
+		} 
+    },
+    CREATESCANFILTER{
+		@Override
+		public void execute(IntraReq req, IntraRes res, IntraState state,
+				int i, Vertx vertx, IntraService is) {
+			IntraOp op = req.getE().get(i);
+
+			String name = (String) op.getOp().get("name");
+			GroovyClassLoader gc = new GroovyClassLoader();
+			Class c = gc.parseClass((String) op.getOp().get("value"));
+			ScanFilter sf = null;
+			try {
+				sf = (ScanFilter) c.newInstance();
+			} catch (InstantiationException | IllegalAccessException e) {
+				res.setExceptionAndId(e, i);
+				return;
+			}
+			IntraState.scanFilters.put(name, sf);
+			res.getOpsRes().put(i, "OK");
+		}	
+    },
+	SCAN {
+		@Override
+		public void execute(IntraReq req, IntraRes res, IntraState state,
+				int i, Vertx vertx, IntraService is) {
+			IntraOp op = req.getE().get(i);
+			
+			Integer scanId = (Integer) op.getOp().get("scanid");
+			if (scanId == null){
+			  ScanContext c = new ScanContext();
+			  c.ks = (String) op.getOp().get("keyspace");
+			  c.cf = (String) op.getOp().get("columnfamily");
+			  c.row = op.getOp().get("row");
+			  c.startCol = op.getOp().get("start");
+			  c.endCol = op.getOp().get("end");
+			  c.filter = IntraState.scanFilters.get("name");
+			  int newScanId = state.openScanner(c);
+			  res.getOpsRes().put(i, newScanId);
+			} else {
+				int size=100;
+				ScanContext c = state.openedScanners.get(scanId);
+				boolean goOn = true;
+				do {
+					IntraRes iRes = new IntraRes();
+					IntraReq iReq = new IntraReq();
+					iReq.add( Operations.setKeyspaceOp(c.ks) );
+					iReq.add( Operations.setColumnFamilyOp(c.cf) );
+					iReq.add( Operations.sliceOp(c.row, c.startCol, c.endCol , 100) );
+					is.handleIntraReq(iReq, iRes, vertx);
+					List<Map> results = (List<Map>) iRes.getOpsRes().get(3);
+					for (Map m:results){
+						ByteBuffer colname = (ByteBuffer) m.get("colname");
+						ByteBuffer end = (ByteBuffer) c.endCol;
+						if (ByteBufferUtil.compareUnsigned(colname, end)>-1){
+							goOn=false;
+							break;
+						}
+						c.filter.filter(m, c);
+						c.startCol = m.get("name");
+						if (c.results.size()>=size){
+							goOn=false;
+							break;
+						}
+					}
+				} while (goOn);
+				
+				res.getOpsRes().put(i, c.results);
+				c.results.clear();
+			}
+			//create 
+		}
+		
+	};
 
     public abstract void execute(IntraReq req, IntraRes res, IntraState state, int i, Vertx vertx, IntraService is);
     

@@ -227,9 +227,33 @@ public class Operations {
 	public static IntraOp serviceProcess(String name, Map params){
 		return new IntraOp(IntraOp.Type.SERVICEPROCESS).set(NAME, name).set(PARAMS, params);
 	}
+	
+	public static IntraOp scan(String ks, String cf, Object row, Object start, Object end, String filter ){
+		IntraOp i = new IntraOp(IntraOp.Type.SCAN);
+		i.set("keyspace", ks);
+		i.set("columnfamily", cf);
+		i.set("row", row);
+		i.set("start", start);
+		i.set("end", end);
+		i.set("name", filter);
+		return i;
+		
+	}
+	public static IntraOp nextscan(int scanId, boolean skipFirst ){
+		IntraOp i = new IntraOp(IntraOp.Type.SCAN);
+		i.set("scanid", scanId);
+		i.set("skipfirst", skipFirst);
+		return i;
+		
+	}
 
   private static void checkForBlankStr(String arg, String msg, IntraOp.Type type) {
     Preconditions.checkArgument(arg != null && arg.length() > 0,
             "A non-blank '{}' is required for {}", new Object[]{msg, type});
   }
+  
+  public static IntraOp createScanFilter(String name, String spec, String value) {
+		return new IntraOp(IntraOp.Type.CREATESCANFILTER).set(NAME, name)
+				.set(SPEC, spec).set(VALUE, value);
+	}
 }
