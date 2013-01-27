@@ -510,7 +510,7 @@ public class IntraServiceTest {
        
       public void run(){
         //ic.setPayload("json");
-        ic.setPayload("jsonsmile");
+        ic.setPayload("json");
         for (int i =0;i<ops;++i){
           IntraReq req = new IntraReq();
           req.add( Operations.setKeyspaceOp("myks") ); //0
@@ -587,11 +587,15 @@ public class IntraServiceTest {
 		  ic.setPayload("json");
 		  IntraRes res = ic.sendBlocking(req);
 		  System.out.println( res.getException());
-		  IntraOp scan = Operations.scan("myks", "mycf", "scannerrow", "ed", "zzname", "peoplefromny");
+		  IntraOp scan = Operations.scan("myks", "mycf", "scannerrow", "ed", "zzname","peoplefromny");
 		  ScanResult sr = ic.getScanner( scan );
 		  System.out.println("scannerid" +sr.getScannerId());
 		  System.out.println( sr.getState());
-		  
+		  int totalRows=0;
+		  for (Map x: sr){
+			  
+			  System.out.println( (totalRows++) +" "+  ByteBufferUtil.string( (ByteBuffer)x.get("name")));
+		  }
 		  
 	  }
 }

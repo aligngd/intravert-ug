@@ -19,4 +19,11 @@ public class ScanContext {
   public void collect(Map m){
 	  results.add(m);
   }
+@Override
+public String toString() {
+	return "ScanContext [ks=" + ks + ", cf=" + cf + ", row=" + row
+			+ ", startCol=" + startCol + ", endCol=" + endCol + ", filter="
+			+ filter + ", results=" + results + "]";
+}
+  
 }

@@ -56,7 +56,7 @@ public class ScanResult implements Iterable<Map>{
 					if (currentIndex < currentRows.size()) {
 						return true;
 					} else if (currentIndex == currentRows.size()) {
-						getFromServer(false);
+						getFromServer(true);
 						if (currentRows.size() > 0) {
 							return true;
 						} else {
@@ -75,11 +75,12 @@ public class ScanResult implements Iterable<Map>{
 
 			@Override
 			public Map next() {
+				if (thisState == STATE.DONE){
+					return null;
+				} 
 				if (this.hasNext()){
 					return currentRows.get(currentIndex++);
-				} else if (thisState == STATE.DONE){
-					return null;
-				}
+				}  
 				return null; 
 			}
 

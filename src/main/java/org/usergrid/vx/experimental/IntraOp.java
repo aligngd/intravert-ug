@@ -1,6 +1,8 @@
 package org.usergrid.vx.experimental;
 
 import com.google.common.base.Preconditions;
+import com.hazelcast.util.SortedHashMap;
+
 import groovy.lang.GroovyClassLoader;
 import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.KSMetaData;
@@ -20,6 +22,7 @@ import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.thrift.*;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.commons.logging.LogFactory;
 import org.usergrid.vx.experimental.scan.ScanContext;
 import org.usergrid.vx.experimental.scan.ScanFilter;
 import org.vertx.java.core.Vertx;
@@ -45,6 +48,7 @@ public class IntraOp implements Serializable{
 	IntraOp(Type type){
     this.type = type;
 		op = new TreeMap<String,Object>();
+		
 	}
 
 	public IntraOp set(String key, Object value){
@@ -564,16 +568,25 @@ public class IntraOp implements Serializable{
 			
 			Integer scanId = (Integer) op.getOp().get("scanid");
 			if (scanId == null){
+			 
 			  ScanContext c = new ScanContext();
 			  c.ks = (String) op.getOp().get("keyspace");
 			  c.cf = (String) op.getOp().get("columnfamily");
 			  c.row = op.getOp().get("row");
 			  c.startCol = op.getOp().get("start");
 			  c.endCol = op.getOp().get("end");
-			  c.filter = IntraState.scanFilters.get("name");
+			  String scannerName = (String) op.getOp().get("name");
+			  if ( IntraState.scanFilters.get(scannerName) == null){
+				res.setExceptionAndId("Could not find scanner "+scannerName, i);
+				return;
+			  }
+			  c.filter = IntraState.scanFilters.get(scannerName);
+			  System.out.println("created " +c);
 			  int newScanId = state.openScanner(c);
+			  System.out.println("created scan:"+i+" "+c);
 			  res.getOpsRes().put(i, newScanId);
 			} else {
+				Boolean skipFirst = (Boolean)op.getOp().get("skipfirst");
 				int size=100;
 				ScanContext c = state.openedScanners.get(scanId);
 				boolean goOn = true;
@@ -582,16 +595,23 @@ public class IntraOp implements Serializable{
 					IntraReq iReq = new IntraReq();
 					iReq.add( Operations.setKeyspaceOp(c.ks) );
 					iReq.add( Operations.setColumnFamilyOp(c.cf) );
-					iReq.add( Operations.sliceOp(c.row, c.startCol, c.endCol , 100) );
+					IntraOp slice =  Operations.sliceOp(c.row, c.startCol, c.endCol , 100);
+					iReq.add( slice );
 					is.handleIntraReq(iReq, iRes, vertx);
-					List<Map> results = (List<Map>) iRes.getOpsRes().get(3);
+					List<Map> results = (List<Map>) iRes.getOpsRes().get(2);
+					if (skipFirst){
+						if (results.size()>0){
+							results.remove(0);
+						}
+					}
 					for (Map m:results){
-						ByteBuffer colname = (ByteBuffer) m.get("colname");
-						ByteBuffer end = (ByteBuffer) c.endCol;
+						ByteBuffer colname = ((ByteBuffer) m.get("name")).duplicate();
+						ByteBuffer end = ByteBufferUtil.bytes( (String) c.endCol ).duplicate();
 						if (ByteBufferUtil.compareUnsigned(colname, end)>-1){
 							goOn=false;
 							break;
 						}
+
 						c.filter.filter(m, c);
 						c.startCol = m.get("name");
 						if (c.results.size()>=size){
@@ -599,9 +619,13 @@ public class IntraOp implements Serializable{
 							break;
 						}
 					}
+					if (results.size()<size ){
+						goOn=false;
+					}
 				} while (goOn);
-				
-				res.getOpsRes().put(i, c.results);
+				List<Map> resultsCopy = new ArrayList<Map>();
+				resultsCopy.addAll(c.results);
+				res.getOpsRes().put(i, resultsCopy);
 				c.results.clear();
 			}
 			//create 
@@ -612,5 +636,12 @@ public class IntraOp implements Serializable{
     public abstract void execute(IntraReq req, IntraRes res, IntraState state, int i, Vertx vertx, IntraService is);
     
   }
+
+
+@Override
+public String toString() {
+	return "IntraOp [opid=" + opid + ", type=" + type + ", op=" + op + "]";
+}
 	
+  
 }

@@ -39,7 +39,10 @@ public class IntraService {
 	
 
   static Object resolveObject(Object o, IntraReq req, IntraRes res,IntraState state, int i){
-		if (o instanceof Object[]){
+		if (o instanceof ByteBuffer){
+			return o;
+		} else
+	    if (o instanceof Object[]){
 		  return o;
 		} else if (o instanceof Integer){
 		  return o;
@@ -85,7 +88,7 @@ public class IntraService {
 			return ByteBuffer.wrap((byte [])o);
 		} else if (o instanceof ByteBuffer){
 			return (ByteBuffer) o;
-		}
+		} 
 		else throw new RuntimeException( "can not serializer "+o);
 	}
 	/*
@@ -122,6 +125,7 @@ public class IntraService {
     Iterator<IColumn> it = cf.iterator();
     while (it.hasNext()) {
       IColumn ic = it.next();
+      
       HashMap m = new HashMap(); 
       m.put("name", TypeHelper.getTypedIfPossible(state, "column", ic.name(), op));
       m.put("value", TypeHelper.getTypedIfPossible(state, "value", ic.value(), op));

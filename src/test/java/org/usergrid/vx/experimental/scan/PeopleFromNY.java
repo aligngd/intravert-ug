@@ -19,10 +19,11 @@ public class PeopleFromNY implements ScanFilter {
 	public boolean filter(Map currentRow, ScanContext c) {
 		String val = null;
 		try {
-			val = ByteBufferUtil.string(((ByteBuffer) currentRow.get("value")));
+			val = ByteBufferUtil.string(((ByteBuffer) currentRow.get("value")).duplicate());
 		} catch (CharacterCodingException e) {
 			
 		}
+		
 		if (val.compareTo("NY")==1){
 			return false; //stop if we get past ny
 		} else if (val.equals("NY")){
