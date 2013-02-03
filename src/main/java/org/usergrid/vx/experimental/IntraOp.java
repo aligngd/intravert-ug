@@ -167,9 +167,9 @@ public class IntraOp implements Serializable{
       		ByteBuffer end = IntraService.byteBufferForObject(IntraService.resolveObject(op.getOp().get("end"), req, res, state, i));
       		List<ReadCommand> commands = new ArrayList<ReadCommand>(1);
       		ColumnPath cp = new ColumnPath();
-      		cp.setColumn_family(state.currentColumnFamily);
+      		cp.setColumn_family(IntraService.determineCf(op,state));
       		QueryPath qp = new QueryPath(cp);
-      		SliceFromReadCommand sr = new SliceFromReadCommand(state.currentKeyspace, rowkey, qp, start, end, false, 100);
+      		SliceFromReadCommand sr = new SliceFromReadCommand(IntraService.determineKs(op,state), rowkey, qp, start, end, false, 100);
       		commands.add(sr);
 
       		List<Row> results = null;
