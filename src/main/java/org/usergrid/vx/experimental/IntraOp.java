@@ -232,19 +232,8 @@ public class IntraOp implements Serializable{
 				int i, Vertx vertx, IntraService is) {
 			IntraOp op = req.getE().get(i);
 			RowMutation rm = null;
-			String ks = null;
-			String cf = null;
-			
-			if (op.getOp().containsKey("keyspace")) {
-				ks = (String) op.getOp().get("keyspace");
-			} else {
-				ks = state.currentKeyspace;
-			}
-			if (op.getOp().get("columnfamily") != null){
-				cf = (String) op.getOp().get("columnfamily");
-			} else {
-				cf = state.currentColumnFamily;
-			}
+			String ks = IntraService.determineKs(op, state);
+			String cf = IntraService.determineCf(op, state);
 			
 			rm = new RowMutation(ks,
 					IntraService.byteBufferForObject(IntraService
@@ -263,7 +252,6 @@ public class IntraOp implements Serializable{
 					(Long) (state.autoTimestamp ? state.nanotime : op
 							.getOp().get("timestamp"))); 
 			} else {
-				System.out.println("We have a ttl");
 				int ttl = (Integer) op.getOp().get("ttl");
 				rm.add(qp, IntraService.byteBufferForObject(IntraService
 						.resolveObject(val, req, res, state, i)),
@@ -488,6 +476,7 @@ public class IntraOp implements Serializable{
     BATCHSET {
       @Override
       public void execute(IntraReq req, IntraRes res, IntraState state, int i, Vertx vertx, IntraService is) {
+    	  //TODO this should be a list of set Op? so we can reuse code?
         IntraOp op = req.getE().get(i);
         List<Map> rows = (List<Map>) op.getOp().get("rows");
         List<RowMutation> m = new ArrayList<RowMutation>();
